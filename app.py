@@ -13,14 +13,18 @@ import re
 import os
 from groq import Groq
 
-# Load .env file if python-dotenv is installed
+# Load .env file if python-dotenv is installed (local development)
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     pass
 
-ENV_GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
+# Load API key — works for both local (.env) and Streamlit Cloud (st.secrets)
+try:
+    ENV_GROQ_KEY = st.secrets["GROQ_API_KEY"]
+except (KeyError, FileNotFoundError, AttributeError):
+    ENV_GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
 
 # ─────────────────────────────────────────────
 # PAGE CONFIG
