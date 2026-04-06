@@ -432,6 +432,11 @@ def hex_to_rgba(hex_color: str, alpha: float = 0.2) -> str:
     return f"rgba({r},{g},{b},{alpha})"
 
 
+def fig_to_html(fig) -> str:
+    """Convert a Plotly figure to a self-contained HTML string — instant, no kaleido needed."""
+    return fig.to_html(full_html=True, include_plotlyjs="cdn")
+
+
 # ─────────────────────────────────────────────
 # MAIN HEADER
 # ─────────────────────────────────────────────
@@ -929,176 +934,412 @@ Be analytical, specific, and insightful. Reference actual numbers and column nam
 
 
 # ══════════════════════════════════════════════
-# TAB 5 — LINKEDIN ARTICLE
+# ══════════════════════════════════════════════
+# TAB 5 — DASHBOARD + LINKEDIN ARTICLE
 # ══════════════════════════════════════════════
 
 with tab5:
-    st.markdown('<div class="section-label">LINKEDIN ARTICLE GENERATOR</div>', unsafe_allow_html=True)
-    st.markdown("<p style='color:#475569; font-size:0.85rem; margin-bottom:1rem'>Generate a publication-ready LinkedIn article from your dataset analysis.</p>", unsafe_allow_html=True)
+
+    # ─── SECTION A: DASHBOARD (always visible) ───
+    st.markdown('<div class="section-label">📊 DATA DASHBOARD</div>', unsafe_allow_html=True)
+
+    if num_cols:
+        import json as _json
+        from plotly.utils import PlotlyJSONEncoder
+
+        _tc   = len(df) * len(df.columns)
+        _tm   = int(df.isnull().sum().sum())
+        _td   = summary["duplicates"]
+        _comp = round((1 - _tm / max(_tc, 1)) * 100, 1)
+        _dpct = round(_td / max(len(df), 1) * 100, 1)
+        _C    = "#ffffff"   # card background — white
+        _B    = "#e2e8f0"   # border — light grey
+        _T    = "#0f172a"   # primary text — near black
+        _M    = "#475569"   # muted text — slate
+
+        def _jdump(fig):
+            return _json.dumps(fig, cls=PlotlyJSONEncoder)
+
+        def _emb_js(fig, did):
+            """Embed each chart as its own self-contained Plotly div."""
+            return fig.to_html(
+                full_html=False,
+                include_plotlyjs=False,
+                div_id=did,
+                config={"displayModeBar": False, "responsive": True},
+                default_width="100%",
+                default_height="240px",
+            )
+
+        # Gauge
+        _fg = go.Figure(go.Indicator(
+            mode="gauge+number+delta", value=_comp,
+            delta={"reference":90,"increasing":{"color":"#059669"},"decreasing":{"color":"#dc2626"}},
+            number={"suffix":"%","font":{"size":32,"color":"#0f172a"}},
+            gauge={"axis":{"range":[0,100],"tickcolor":_M,"tickfont":{"size":10,"color":_M}},
+                   "bar":{"color":"#2563eb","thickness":0.25},"bgcolor":"#f8fafc","bordercolor":_B,
+                   "steps":[{"range":[0,60],"color":"#fee2e2"},{"range":[60,80],"color":"#fef9c3"},
+                             {"range":[80,100],"color":"#dcfce7"}],
+                   "threshold":{"line":{"color":"#059669","width":3},"thickness":0.8,"value":90}},
+        ))
+        _fg.update_layout(paper_bgcolor=_C,font_color=_M,margin=dict(l=30,r=30,t=50,b=20),height=260,
+            title=dict(text="DATA COMPLETENESS",font=dict(size=11,color=_M),x=0.5))
+
+        # Donut
+        _fd = go.Figure(go.Pie(
+            labels=["Complete","Missing","Duplicates"],
+            values=[max(0,_tc-_tm-_td),max(0,_tm),max(0,_td)],
+            hole=0.65,marker_colors=["#2563eb","#f59e0b","#ef4444"],
+            textinfo="percent+label",textfont_size=10,
+        ))
+        _fd.update_layout(paper_bgcolor=_C,font_color=_M,showlegend=False,
+            margin=dict(l=10,r=10,t=50,b=20),height=260,
+            title=dict(text="QUALITY BREAKDOWN",font=dict(size=11,color=_M),x=0.5),
+            annotations=[dict(text=f"<b>{_comp}%</b><br>clean",x=0.5,y=0.5,
+                              showarrow=False,font=dict(size=14,color=_T))])
+
+        # Means
+        _mv = df[num_cols[:8]].mean().sort_values(ascending=True)
+        _fm = go.Figure(go.Bar(
+            x=_mv.values, y=_mv.index, orientation="h",
+            marker=dict(color=_mv.values,
+                colorscale=[[0,"#93c5fd"],[0.5,"#3b82f6"],[1,"#1d4ed8"]],
+                showscale=False),
+            text=[f"{v:.1f}" for v in _mv.values],
+            textposition="outside",
+            textfont=dict(size=9, color="#0f172a")
+        ))
+        _fm.update_layout(paper_bgcolor=_C, plot_bgcolor="#f8fafc", font_color="#0f172a",
+            margin=dict(l=100,r=60,t=50,b=20), height=260,
+            title=dict(text="COLUMN MEANS", font=dict(size=11,color=_M), x=0.5),
+            yaxis=dict(autorange="reversed", showgrid=False, tickfont=dict(size=9,color="#0f172a")),
+            xaxis=dict(gridcolor="#e2e8f0", zerolinecolor="#e2e8f0", tickfont=dict(color="#0f172a")))
+
+        # Light-theme safe palette
+        _LP = ["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#9333ea"]
+
+        # Trend
+        _ft = go.Figure()
+        for _i,_col in enumerate(num_cols[:3]):
+            _s = df[_col].dropna().reset_index(drop=True)
+            _s = _s.iloc[::max(1,len(_s)//200)]
+            _ft.add_trace(go.Scatter(
+                x=_s.index, y=_s.values, mode="lines", name=_col,
+                line=dict(color=_LP[_i%len(_LP)], width=2),
+                fill="tozeroy",
+                fillcolor=hex_to_rgba(_LP[_i%len(_LP)], 0.1)
+            ))
+        _ft.update_layout(
+            paper_bgcolor=_C, plot_bgcolor="#f8fafc", font_color=_M,
+            legend=dict(font=dict(size=9,color=_T), orientation="h", y=1.12, x=0),
+            margin=dict(l=50,r=20,t=50,b=20), height=260, hovermode="x unified",
+            title=dict(text="VALUE TRENDS", font=dict(size=11,color=_M), x=0.5)
+        )
+        _ft.update_xaxes(gridcolor="#e2e8f0", showticklabels=False, zerolinecolor="#e2e8f0")
+        _ft.update_yaxes(gridcolor="#e2e8f0", zerolinecolor="#e2e8f0", tickfont=dict(color=_T))
+
+        # Violin
+        _fv = go.Figure()
+        for _i,_col in enumerate(num_cols[:4]):
+            _fv.add_trace(go.Violin(
+                y=df[_col].dropna(), name=_col[:10],
+                box_visible=True, meanline_visible=True,
+                fillcolor=hex_to_rgba(_LP[_i%len(_LP)], 0.3),
+                line_color=_LP[_i%len(_LP)],
+                showlegend=False
+            ))
+        _fv.update_layout(
+            paper_bgcolor=_C, plot_bgcolor="#f8fafc", font_color=_M,
+            margin=dict(l=50,r=20,t=50,b=20), height=260,
+            title=dict(text="DISTRIBUTION SPREAD", font=dict(size=11,color=_M), x=0.5)
+        )
+        _fv.update_yaxes(gridcolor="#e2e8f0", zerolinecolor="#e2e8f0", tickfont=dict(color=_T))
+        _fv.update_xaxes(showgrid=False, tickfont=dict(size=9, color=_T))
+
+        # Heatmap
+        _cr = df[num_cols[:6]].corr()
+        _fh = px.imshow(_cr,
+            color_continuous_scale=["#dc2626","#f8fafc","#2563eb"],
+            zmin=-1, zmax=1, text_auto=".1f", aspect="auto"
+        )
+        _fh.update_layout(
+            paper_bgcolor=_C, font_color=_T,
+            margin=dict(l=80,r=20,t=50,b=50), height=260,
+            coloraxis_showscale=False,
+            title=dict(text="CORRELATION HEATMAP", font=dict(size=11,color=_M), x=0.5)
+        )
+        _fh.update_xaxes(tickfont=dict(color=_T))
+        _fh.update_yaxes(tickfont=dict(color=_T))
+
+        # Missing %
+        _mp = (df.isnull().sum()/len(df)*100).round(1)
+        _fms = go.Figure(go.Bar(
+            x=df.columns.tolist(), y=_mp.values,
+            marker_color=["#ef4444" if v>20 else "#f59e0b" if v>5 else "#3b82f6" for v in _mp.values],
+            text=[f"{v}%" for v in _mp.values],
+            textposition="outside",
+            textfont=dict(size=9, color="#0f172a")
+        ))
+        _fms.update_layout(paper_bgcolor=_C, plot_bgcolor="#f8fafc", font_color="#0f172a",
+            margin=dict(l=20,r=20,t=50,b=100), height=280,
+            title=dict(text="MISSING VALUES %", font=dict(size=11,color=_M), x=0.5),
+            xaxis=dict(showgrid=False, tickangle=-45, tickfont=dict(size=8,color="#0f172a"), automargin=True),
+            yaxis=dict(gridcolor="#e2e8f0", zerolinecolor="#e2e8f0",
+                       range=[0,max(_mp.max()+20,20)], tickfont=dict(color="#0f172a")))
+
+        if cat_cols:
+            _vc = df[cat_cols[0]].value_counts().head(8)
+            _fc = go.Figure(go.Bar(
+                x=_vc.index.astype(str), y=_vc.values,
+                marker_color=["#2563eb","#7c3aed","#059669","#d97706","#dc2626","#0891b2","#9333ea","#2563eb"][:len(_vc)],
+                text=_vc.values, textposition="outside",
+                textfont=dict(size=10, color="#0f172a")
+            ))
+            _fc.update_layout(paper_bgcolor=_C, plot_bgcolor="#f8fafc", font_color="#0f172a",
+                margin=dict(l=20,r=20,t=50,b=100), height=280,
+                title=dict(text=f"TOP: {cat_cols[0]}", font=dict(size=11,color=_M), x=0.5),
+                xaxis=dict(showgrid=False, tickangle=-45, tickfont=dict(size=9,color="#0f172a"), automargin=True),
+                yaxis=dict(gridcolor="#e2e8f0", zerolinecolor="#e2e8f0", tickfont=dict(color="#0f172a")))
+        else:
+            _pr = (_cr.abs().where(np.triu(np.ones(_cr.shape),k=1).astype(bool))
+                   .stack().sort_values(ascending=False).head(8))
+            _fc = go.Figure(go.Bar(
+                x=[f"{a[:5]}x{b[:5]}" for a,b in _pr.index], y=_pr.values,
+                marker_color=["#2563eb" if v>0.7 else "#d97706" if v>0.4 else "#94a3b8" for v in _pr.values],
+                text=[f"{v:.2f}" for v in _pr.values],textposition="outside",
+                textfont=dict(size=9,color="#0f172a")))
+            _fc.update_layout(paper_bgcolor=_C,plot_bgcolor=_C,font_color="#0f172a",
+                margin=dict(l=20,r=20,t=50,b=80),height=280,
+                title=dict(text="TOP CORR PAIRS",font=dict(size=11,color=_M),x=0.5),
+                xaxis=dict(showgrid=False,tickangle=-30,tickfont=dict(size=9,color="#0f172a")),
+                yaxis=dict(gridcolor='#e2e8f0',range=[0,1.2],tickfont=dict(color="#0f172a")))
+
+        # ── KPI Banner HTML ──
+        _kpi_html = "".join([
+            f'<div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;'
+            f'padding:14px;text-align:center;border-top:3px solid {c};">'
+            f'<div style="font-size:1.6rem;font-weight:700;color:{c};font-family:monospace">{v}</div>'
+            f'<div style="font-size:0.62rem;color:#475569;margin-top:4px;text-transform:uppercase;'
+            f'letter-spacing:.08em">{lbl}</div></div>'
+            for v,lbl,c in [
+                (f"{len(df):,}",    "Total Rows",   "#2563eb"),
+                (len(df.columns),   "Columns",      "#7c3aed"),
+                (f"{_comp}%",       "Completeness", "#059669"),
+                (len(num_cols),     "Numeric Cols", "#d97706"),
+                (f"{_dpct}%",       "Duplicates",   "#dc2626"),
+            ]
+        ])
+
+        # ── Streamlit KPI banner ──
+        st.markdown(
+            f'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px;">'
+            f'{_kpi_html}</div>',
+            unsafe_allow_html=True
+        )
+
+        # ── Streamlit chart rows — instant display ──
+        r1a, r1b, r1c = st.columns(3)
+        with r1a: st.plotly_chart(_fg,  use_container_width=True, key="db_gauge")
+        with r1b: st.plotly_chart(_fd,  use_container_width=True, key="db_donut")
+        with r1c: st.plotly_chart(_fm,  use_container_width=True, key="db_means")
+
+        r2a, r2b, r2c = st.columns(3)
+        with r2a: st.plotly_chart(_ft,  use_container_width=True, key="db_trend")
+        with r2b: st.plotly_chart(_fv,  use_container_width=True, key="db_violin")
+        with r2c: st.plotly_chart(_fh,  use_container_width=True, key="db_hm")
+
+        r3a, r3b = st.columns(2)
+        with r3a: st.plotly_chart(_fms, use_container_width=True, key="db_miss")
+        with r3b: st.plotly_chart(_fc,  use_container_width=True, key="db_cat")
+
+        # ── Download ──
+        _dsn = uploaded_file.name.rsplit(".",1)[0]
+        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+
+        if "dashboard_html" not in st.session_state:
+            st.session_state["dashboard_html"] = None
+
+        if st.button("🛠️ Prepare Dashboard for Download", use_container_width=True):
+            _figs = [_fg, _fd, _fm, _ft, _fv, _fh, _fms, _fc]
+            _ids  = ["p1","p2","p3","p4","p5","p6","p7","p8"]
+
+            # First chart includes plotly JS, rest share it
+            _divs = []
+            for _idx, (fig, did) in enumerate(zip(_figs, _ids)):
+                _incl = "cdn" if _idx == 0 else False
+                _ch = fig.to_html(
+                    full_html=False,
+                    include_plotlyjs=_incl,
+                    div_id=did,
+                    config={"displayModeBar": False, "responsive": True},
+                    default_width="100%",
+                    default_height="250px",
+                )
+                _divs.append(
+                    f'<div style="background:#ffffff;border:1px solid #e2e8f0;'
+                    f'border-radius:8px;padding:6px;overflow:hidden;">{_ch}</div>'
+                )
+
+            _css = (
+                "*{box-sizing:border-box;margin:0;padding:0;}"
+                "body{background:#ffffff;font-family:Arial,sans-serif;"
+                "     padding:14px 18px;color:#0f172a;}"
+                ".ttl{font-size:1.1rem;font-weight:700;color:#0f172a;margin-bottom:2px;}"
+                ".sub{font-size:0.68rem;color:#64748b;margin-bottom:10px;}"
+                ".kpi{display:grid;grid-template-columns:repeat(5,1fr);"
+                "     gap:8px;margin-bottom:10px;}"
+                ".r3{display:grid;grid-template-columns:repeat(3,1fr);"
+                "    gap:8px;margin-bottom:8px;}"
+                ".r2{display:grid;grid-template-columns:repeat(2,1fr);"
+                "    gap:8px;margin-bottom:8px;}"
+                ".ft{text-align:center;color:#94a3b8;font-size:0.58rem;margin-top:6px;}"
+                "@media print{"
+                "  body{-webkit-print-color-adjust:exact !important;"
+                "       print-color-adjust:exact !important;"
+                "       background:#ffffff !important;}"
+                "  .kpi,.r3,.r2{break-inside:avoid;}"
+                "  @page{size:A3 landscape;margin:8mm;}"
+                "}"
+            )
+
+            _print_js = """
+<script>
+function savePDF() {
+    // Relayout all charts so they render fully
+    var plots = document.querySelectorAll('.js-plotly-plot');
+    plots.forEach(function(p) { try{ Plotly.relayout(p, {}); }catch(e){} });
+    // Wait 1.5s for render then print
+    setTimeout(function(){ window.print(); }, 1500);
+}
+// Auto-relayout on page load too
+window.addEventListener('load', function(){
+    setTimeout(function(){
+        var plots = document.querySelectorAll('.js-plotly-plot');
+        plots.forEach(function(p){ try{ Plotly.relayout(p, {}); }catch(e){} });
+    }, 500);
+});
+</script>"""
+
+            st.session_state["dashboard_html"] = (
+                "<!DOCTYPE html><html><head>"
+                "<meta charset='utf-8'>"
+                f"<title>{_dsn} Dashboard</title>"
+                f"<style>{_css}</style>"
+                "</head><body>"
+                "<div style='display:flex;justify-content:space-between;"
+                "align-items:center;margin-bottom:4px;'>"
+                f"<div class='ttl'>&#128202; {_dsn} &mdash; Data Dashboard</div>"
+                "<button onclick='savePDF()' style='background:#2563eb;color:white;"
+                "border:none;border-radius:6px;padding:5px 14px;cursor:pointer;"
+                "font-size:0.78rem;font-weight:600;display:block;'>&#128438; Save as PDF</button>"
+                "</div>"
+                f"<div class='sub'>DataLens AI &middot; "
+                f"{pd.Timestamp.now().strftime('%d %b %Y %H:%M')} &middot; "
+                f"Open in Chrome, wait 3 sec, then click Save as PDF</div>"
+                f"<div class='kpi'>{_kpi_html}</div>"
+                f"<div class='r3'>{_divs[0]}{_divs[1]}{_divs[2]}</div>"
+                f"<div class='r3'>{_divs[3]}{_divs[4]}{_divs[5]}</div>"
+                f"<div class='r2'>{_divs[6]}{_divs[7]}</div>"
+                "<div class='ft'>DataLens AI &middot; All charts are interactive</div>"
+                f"{_print_js}"
+                "</body></html>"
+            )
+            st.success("✅ Ready! Download → open in Chrome → wait 3 sec → click **Save as PDF**")
+
+        if st.session_state.get("dashboard_html"):
+            st.download_button(
+                label="⬇️  Download Full Dashboard  —  All 8 Charts + KPIs in 1 File",
+                data=st.session_state["dashboard_html"],
+                file_name=f"{_dsn}_dashboard.html",
+                mime="text/html",
+                use_container_width=True,
+            )
+            st.caption("Open in Chrome → **Ctrl + P** → **Save as PDF** (A3 Landscape) ✅")
+
+    else:
+        st.info("Upload a dataset with numeric columns to generate the dashboard.")
+
+    st.markdown("---")
+
+    # ─── SECTION B: LINKEDIN ARTICLE GENERATOR ───
+    st.markdown('<div class="section-label">✍️ LINKEDIN ARTICLE GENERATOR</div>', unsafe_allow_html=True)
 
     if not groq_key:
-        st.error("⚙️ AI features are unavailable. The app administrator needs to set the `GROQ_API_KEY` environment variable on the server.")
+        st.error("⚙️ AI features unavailable. Set the GROQ_API_KEY environment variable on the server.")
     else:
         client = Groq(api_key=groq_key)
 
         col_opt1, col_opt2 = st.columns(2)
         with col_opt1:
             dataset_name = st.text_input("Dataset / Topic Name", placeholder="e.g. Global Sales Data 2024")
-            your_name = st.text_input("Your Name (optional)", placeholder="e.g. Jane Doe")
+            your_name    = st.text_input("Your Name (optional)", placeholder="e.g. Jane Doe")
         with col_opt2:
-            industry = st.text_input("Industry / Domain", placeholder="e.g. Retail, Finance, Healthcare")
-            focus_angle = st.text_area(
-                "Key message / angle (optional)",
-                placeholder="e.g. Focus on how customer age affects purchase frequency",
-                height=80,
-            )
+            industry     = st.text_input("Industry / Domain", placeholder="e.g. Retail, Finance, Healthcare")
+            focus_angle  = st.text_area("Key message / angle (optional)",
+                placeholder="e.g. Focus on how customer age affects purchase frequency", height=80)
 
-        include_emojis = st.checkbox("Include emojis", value=True)
-        include_cta = st.checkbox("Include Call-to-Action", value=True)
-        include_hashtags = st.checkbox("Include hashtags", value=True)
+        include_emojis   = st.checkbox("Include emojis",          value=True)
+        include_cta      = st.checkbox("Include Call-to-Action",   value=True)
+        include_hashtags = st.checkbox("Include hashtags",         value=True)
 
         if st.button("✍️ Generate LinkedIn Article"):
-            data_ctx = build_data_context(df, summary)
-
-            emoji_note = "Use emojis strategically to make it engaging." if include_emojis else "Do not use emojis."
-            cta_note = "End with a strong call-to-action asking readers to comment or share." if include_cta else ""
-            hashtag_note = "Add 8–12 relevant hashtags at the end." if include_hashtags else ""
+            data_ctx     = build_data_context(df, summary)
+            emoji_note   = "Use emojis strategically." if include_emojis   else "Do not use emojis."
+            cta_note     = "End with a strong call-to-action."              if include_cta      else ""
+            hashtag_note = "Add 8-12 relevant hashtags at the end."         if include_hashtags else ""
 
             prompt = f"""Write a compelling LinkedIn article about a data analysis I performed.
-
 DATASET CONTEXT:
 {data_ctx}
-
 ARTICLE DETAILS:
 - Dataset/Topic: {dataset_name or "My Dataset"}
 - Industry: {industry or "General"}
 - Author: {your_name or "a data professional"}
-- Writing tone: {article_tone}
-- Target audience: {article_audience}
-- Key angle: {focus_angle or "Surface the most interesting insights"}
-
-ARTICLE STRUCTURE:
-1. Hook (attention-grabbing opening line or question)
-2. Brief intro about why this data matters
-3. Key Finding #1 (with specific numbers)
-4. Key Finding #2 (with specific numbers)
-5. Key Finding #3 (with specific numbers)
-6. What this means / implications
-7. Lessons learned / recommendations
-{cta_note}
-{hashtag_note}
-
-STYLE RULES:
-- Tone: {article_tone}
-- {emoji_note}
-- Short paragraphs (2–3 sentences max)
-- Use line breaks liberally for LinkedIn readability
-- Make it feel personal and insightful, not robotic
-- Target length: 600–900 words
-
+- Tone: {article_tone}  Audience: {article_audience}
+- Angle: {focus_angle or "Surface the most interesting insights"}
+STRUCTURE: Hook → Intro → 3 Key Findings (with numbers) → Implications → Recommendations
+{cta_note} {hashtag_note}
+STYLE: {emoji_note} Short paragraphs. 600-900 words. LinkedIn line breaks.
 Write the full article now:"""
 
-            with st.spinner("Crafting your LinkedIn article with Groq LLaMA..."):
+            with st.spinner("Generating article with Groq LLaMA..."):
                 try:
-                    article = generate_groq_response(
-                        client, prompt,
-                        system="You are a top LinkedIn thought leader and data storyteller. You write viral posts that combine data insights with engaging narratives.",
-                        model="llama-3.3-70b-versatile",
-                    )
-
-                    st.markdown("---")
-                    st.markdown("### 📄 Your LinkedIn Article")
-
-                    # Word count
+                    article = generate_groq_response(client, prompt,
+                        system="You are a top LinkedIn thought leader and data storyteller.",
+                        model="llama-3.3-70b-versatile")
                     wc = len(article.split())
-                    st.caption(f"~{wc} words · Estimated read time: {max(1, wc // 200)} min")
-
-                    st.markdown(
-                        f"<div class='linkedin-article'>{article}</div>",
-                        unsafe_allow_html=True,
-                    )
-
-                    # Actions
-                    dl1, dl2 = st.columns(2)
-                    with dl1:
-                        st.download_button(
-                            "⬇️ Download Article (.txt)",
-                            article,
-                            file_name="linkedin_article.txt",
-                            mime="text/plain",
-                            use_container_width=True,
-                        )
-                    with dl2:
-                        md_article = f"# {dataset_name or 'Data Analysis'} — LinkedIn Article\n\n{article}"
-                        st.download_button(
-                            "⬇️ Download as Markdown",
-                            md_article,
-                            file_name="linkedin_article.md",
-                            mime="text/markdown",
-                            use_container_width=True,
-                        )
-
-                    # Visual summary to accompany article
-                    st.markdown("---")
-                    st.markdown("### 📊 Chart to Share with Article")
-                    st.caption("Download this chart to include as a visual in your LinkedIn post.")
-
-                    if num_cols:
-                        fig_share = make_subplots(
-                            rows=1, cols=2,
-                            subplot_titles=["Top Numeric Distributions", "Data Quality Overview"],
-                            specs=[[{"type": "xy"}, {"type": "domain"}]],
-                        )
-                        cols_to_show = num_cols[:3]
-                        for i, col in enumerate(cols_to_show):
-                            fig_share.add_trace(
-                                go.Box(
-                                    y=df[col].dropna(), name=col,
-                                    marker_color=PALETTE[i % len(PALETTE)],
-                                    line_color=PALETTE[i % len(PALETTE)],
-                                ),
-                                row=1, col=1,
-                            )
-
-                        # Missing values pie
-                        miss = {c: df[c].isnull().sum() for c in df.columns}
-                        total_missing = sum(miss.values())
-                        total_present = len(df) * len(df.columns) - total_missing
-                        fig_share.add_trace(
-                            go.Pie(
-                                labels=["Complete", "Missing"],
-                                values=[total_present, max(1, total_missing)],
-                                marker_colors=[PALETTE[0], PALETTE[2]],
-                                hole=0.4,
-                            ),
-                            row=1, col=2,
-                        )
-
-                        fig_share.update_layout(
-                            paper_bgcolor="#13131f",
-                            plot_bgcolor="#1a1a2e",
-                            font_color="#c9c7c0",
-                            height=350,
-                            title_text=f"📊 {dataset_name or 'Dataset'} — Quick Analysis",
-                            title_font_color="#c77dff",
-                            margin=dict(l=20, r=20, t=60, b=20),
-                            showlegend=False,
-                        )
-                        for ax in ["xaxis", "yaxis", "xaxis2", "yaxis2"]:
-                            if hasattr(fig_share.layout, ax):
-                                getattr(fig_share.layout, ax).update(gridcolor="#1e1e2e", zerolinecolor="#2a2a40")
-
-                        st.plotly_chart(fig_share, use_container_width=True)
-
+                    st.markdown('<div class="section-label">GENERATED ARTICLE</div>', unsafe_allow_html=True)
+                    art_col, stat_col = st.columns([3,1])
+                    with art_col:
+                        st.markdown('<div class="chart-panel"><div class="panel-title">LINKEDIN POST PREVIEW</div>', unsafe_allow_html=True)
+                        st.markdown(f"<div class='linkedin-article'>{article}</div>", unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    with stat_col:
+                        st.markdown(f"""
+                        <div class="kpi-card" style="--accent:#3b82f6;margin-bottom:.7rem">
+                            <span class="kpi-icon">&#128221;</span>
+                            <div class="kpi-value">{wc}</div>
+                            <div class="kpi-label">Words</div>
+                            <div class="kpi-delta">~{max(1,wc//200)} min read</div>
+                        </div>""", unsafe_allow_html=True)
+                        dl1, dl2 = st.columns(2)
+                        with dl1:
+                            st.download_button("⬇️ .txt", article,
+                                file_name="linkedin_article.txt", mime="text/plain",
+                                use_container_width=True)
+                        with dl2:
+                            st.download_button("⬇️ .md",
+                                f"# {dataset_name or 'Data Analysis'}\n\n{article}",
+                                file_name="linkedin_article.md", mime="text/markdown",
+                                use_container_width=True)
                 except Exception as e:
                     st.error(f"Groq API error: {e}")
 
-        # Tips
         with st.expander("💡 Tips for a viral LinkedIn post"):
             st.markdown("""
-- **Post time**: Tuesday–Thursday, 8–10am or 5–6pm in your audience's timezone
-- **First line** is critical — LinkedIn cuts off after 2–3 lines. Hook them immediately.
-- **Images** increase engagement 2–3×. Download the chart above to attach.
+- **Post time**: Tuesday-Thursday, 8-10am or 5-6pm in your audience's timezone
+- **First line** is critical — LinkedIn cuts off after 2-3 lines. Hook them immediately.
+- **Images** increase engagement 2-3x. Use the dashboard download above!
 - **Tag colleagues** or companies mentioned in your analysis
 - **Engage early**: Reply to every comment in the first hour for maximum reach
 - **Avoid links in body**: Put external links in the first comment instead
