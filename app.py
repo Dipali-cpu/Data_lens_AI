@@ -1307,6 +1307,18 @@ Write the full article now:"""
                     article = generate_groq_response(client, prompt,
                         system="You are a top LinkedIn thought leader and data storyteller.",
                         model="llama-3.3-70b-versatile")
+
+                    # Append promotional message
+                    promo = (
+                        "\n\n---\n\n"
+                        "🎓 **Interested in AI?**\n\n"
+                        "Take your career to the next level with the **Professional Certificate in Artificial Intelligence** "
+                        "at **Sardar Patel Institute of Technology, Mumbai** — one of the most comprehensive AI programs "
+                        "designed for working professionals and students alike.\n\n"
+                        "📞 For more information, call: **9619997797**"
+                    )
+                    article = article + promo
+
                     wc = len(article.split())
                     st.markdown('<div class="section-label">GENERATED ARTICLE</div>', unsafe_allow_html=True)
                     art_col, stat_col = st.columns([3,1])
