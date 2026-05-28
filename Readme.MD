@@ -1,111 +1,127 @@
-# 🔍 DataLens AI — Dataset Analyser + LinkedIn Article Generator
+# 🔍 DataLens AI
 
-A powerful Streamlit app that gives you deep dataset analysis and auto-generates LinkedIn articles using **Groq's ultra-fast LLaMA 3** inference.
+> Upload any dataset. Get deep analysis + AI insights + LinkedIn articles — in seconds.
 
----
-
-## 🚀 Quick Start
-
-### 1. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Run the app
-
-```bash
-streamlit run app.py
-```
-
-### 3. Open in browser
-
-Streamlit will open automatically at `http://localhost:8501`
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Click_Here-238636?style=for-the-badge)](https://datalensai-gvkkrxx8jkdlsxuph8kczh.streamlit.app/)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776ab?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
+[![Groq](https://img.shields.io/badge/Groq-LLaMA_3.3_70B-e85c0d?style=for-the-badge)](https://groq.com)
+[![License](https://img.shields.io/badge/License-MIT-2ea043?style=for-the-badge)](LICENSE)
 
 ---
 
-## 🔑 Groq API Key
+## 🌐 Live Demo
 
-1. Visit [console.groq.com](https://console.groq.com/)
-2. Sign up / log in → Create API Key
-3. Paste it into the sidebar of the app
+**[👉 Try DataLens AI now →](https://datalensai-gvkkrxx8jkdlsxuph8kczh.streamlit.app/)**
+
+No installation needed. Upload any CSV, Excel, JSON, Parquet, or TSV file and explore instantly.
 
 ---
 
-## 📁 Supported File Formats
+## 💡 What is DataLens AI?
 
-| Format  | Extension          |
-| ------- | ------------------ |
-| CSV     | `.csv`           |
-| Excel   | `.xlsx`,`.xls` |
-| JSON    | `.json`          |
-| Parquet | `.parquet`       |
-| TSV     | `.tsv`           |
+DataLens AI is a **full-stack data analytics web app** that turns any raw dataset into actionable insights within seconds. Built for analysts, data scientists, and business teams who want to skip the setup and go straight to understanding their data.
+
+> No code needed. Upload → explore → get AI-powered insights → generate a LinkedIn article ready to post.
+
+**Why I built this:** I wanted a single tool that combines EDA, AI analysis, and content generation — saving hours of manual work for every new dataset.
 
 ---
 
 ## ✨ Features
 
-### 📋 Overview Tab
-
-* Live data preview with adjustable row count
-* Column type inspector (numeric, categorical, datetime)
-* Descriptive statistics table
-* Missing value bar chart
-* Categorical value frequency charts
-
-### 📈 Distribution Tab
-
-* Interactive histograms for all numeric columns
-* Box plots for outlier detection
-* Violin plots showing distribution shape
-* Scatter plot explorer with OLS trendline
-* Color encoding by categorical dimensions
-
-### 🔗 Correlation Tab
-
-* Full correlation heatmap (color-coded)
-* Top N most correlated pairs ranked
-* Interactive scatter matrix (pair plot)
-
-### 🤖 AI Insights Tab (Groq)
-
-* 6 preset analysis modes:
-  * Executive Summary
-  * Data Quality Report
-  * Key Trends & Patterns
-  * Anomalies & Outliers
-  * Business Recommendations
-  * Statistical Deep Dive
-* Custom question interface
-* Multi-turn chat with your dataset (memory-aware)
-
-### 💼 LinkedIn Article Tab (Groq)
-
-* Fully customisable article generation
-* Tone: Professional / Conversational / Data-driven / Storytelling
-* Target audience selection
-* Optional emojis, CTA, hashtags
-* Download as `.txt` or `.md`
-* Shareable chart auto-generated for the post
-* Viral LinkedIn tips included
+| Tab | What it does |
+|-----|-------------|
+| 📋 **Overview** | Live data preview, column inspector, missing value chart, categorical breakdown |
+| 📈 **Distributions** | Histograms, box plots, violin plots, scatter explorer with OLS trendline |
+| 🔗 **Correlations** | Full heatmap, top N correlated pairs ranked, interactive pair plot |
+| 🤖 **AI Insights** | 6 analysis modes + multi-turn chat with your data (Groq LLaMA 3.3 70B) |
+| 💼 **LinkedIn Article** | Auto-generate viral-ready posts with tone, audience & hashtag controls |
 
 ---
 
-## 🛠 Tech Stack
+## 🤖 AI Analysis Modes
 
-* **Frontend** : Streamlit
-* **AI** : Groq API (LLaMA 3.3 70B)
-* **Charts** : Plotly (interactive), Matplotlib, Seaborn
-* **Data** : Pandas, NumPy
+- 📊 Executive Summary
+- 🔍 Data Quality Report
+- 📈 Key Trends & Patterns
+- ⚠️ Anomalies & Outliers
+- 💡 Business Recommendations
+- 🧠 Statistical Deep Dive
+- 💬 Custom question — ask anything about your data
 
 ---
 
-## 📸 Aesthetic
+## 🛠️ Tech Stack
 
-Dark editorial design with:
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Streamlit (custom dark-mode CSS) |
+| AI Engine | Groq API → LLaMA 3.3 70B Versatile |
+| Charts | Plotly (interactive), Matplotlib, Seaborn |
+| Data | Pandas, NumPy |
+| Deployment | Streamlit Community Cloud |
 
-* Violet/Purple/Pink gradient accents
-* Custom `Syne` + `Inter` typography
-* Smooth hover animations
-* Glassmorphism-style cards
+---
+
+## 📁 Supported File Formats
+
+`CSV` · `Excel (.xlsx / .xls)` · `JSON` · `Parquet` · `TSV`
+
+---
+
+## 🚀 Run Locally
+
+```bash
+git clone https://github.com/Dipali-cpu/Data_lens_AI.git
+cd Data_lens_AI
+pip install -r requirements.txt
+```
+
+Add your Groq API key (free at [console.groq.com](https://console.groq.com)):
+```bash
+# Create a .env file
+echo "GROQ_API_KEY=your_key_here" > .env
+```
+
+```bash
+streamlit run app.py
+```
+
+---
+
+## 📂 Project Structure
+
+```
+Data_lens_AI/
+├── app.py              # Main Streamlit application (1,358 lines)
+├── requirements.txt    # Python dependencies
+├── .gitignore
+└── Readme.MD
+```
+
+---
+
+## 🎯 Key Technical Decisions
+
+- **Groq over OpenAI** — Groq's inference is 10–20x faster, making the chat feel instant
+- **Session-based chat memory** — `st.session_state` stores conversation history for multi-turn Q&A
+- **Secrets management** — reads from `st.secrets` (cloud) with `.env` fallback (local), so the API key is never exposed
+- **5 file formats** — handled with a single `load_data()` router function
+
+---
+
+## 👩‍💻 Built by
+
+**Dipali** — Data Science & Analytics professional  
+Self-taught in Python, Machine Learning, SQL, and AI-integrated applications.  
+Completed Data Science internship · April 2026
+
+[![LinkedIn](https://img.shields.io/badge/Connect_on-LinkedIn-0077b5?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/dipali-chothmal-5731b032b/)
+[![GitHub](https://img.shields.io/badge/More_Projects-GitHub-333?style=flat-square&logo=github)](https://github.com/Dipali-cpu)
+
+---
+
+## 📄 License
+
+MIT License — free to use, modify, and distribute.
